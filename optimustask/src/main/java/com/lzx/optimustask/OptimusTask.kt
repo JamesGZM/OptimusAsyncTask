@@ -51,7 +51,7 @@ abstract class OptimusTask : IOptimusTask {
     override fun doNextTask() {
         finishTask()
         OptimusTaskManager.currRunningTask = null
-        Log.i(OptimusTaskManager.TAG, "tryToHandlerTask finish，removeTask -> ${getTaskName()}")
+        OptimusTaskManager.logger.i("tryToHandlerTask finish，removeTask -> ${getTaskName()}")
         TaskQueueManager.removeTask(this)
         OptimusTaskManager.cacheTaskNameList.remove(getTaskName())
         deferred?.add(1)

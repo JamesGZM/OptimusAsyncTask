@@ -1,18 +1,19 @@
 package com.lzx.optimustask
 
-import android.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
+import java.util.*
 import java.util.concurrent.PriorityBlockingQueue
 import java.util.concurrent.atomic.AtomicInteger
 
 class OptimusTaskManager {
 
     companion object {
-        const val TAG = "OptimusTaskManager"
         internal val cacheTaskNameList = mutableListOf<String>()
 
+        var DEBUG = false
+        var logger: Logger = DefaultLogger
         var currRunningTask: IOptimusTask? = null
     }
 
@@ -24,7 +25,7 @@ class OptimusTaskManager {
     private val deferred = PriorityBlockingQueue<Int>()
 
     private val handler = CoroutineExceptionHandler { _, exception ->
-        Log.i(TAG, "handlerCatch -> $exception")
+        logger.i("handlerCatch -> $exception")
     }
 
     init {
@@ -39,7 +40,7 @@ class OptimusTaskManager {
 
     private suspend fun addTaskSuspend(task: IOptimusTask) {
         task.setDeferred(deferred)
-        Log.i(TAG, "addTask name = " + task.getTaskName())
+        logger.i("addTask name = " + task.getTaskName())
         val result = if (checkChannelActive()) {
             sendTask(task)
         } else {
@@ -47,37 +48,26 @@ class OptimusTaskManager {
             reSendTaskIfNeed() //重新发送缓存任务
             sendTask(task)     //最后发送当前任务
         }
+        logger.i("sendTask result = $result")
     }
 
     private suspend fun sendTask(task: IOptimusTask): Boolean {
         return runCatching {
             if (checkChannelActive()) {
-//                return if (!TaskQueueManager.hasTask(task)) {
-//                    task.setSequence(atomicInteger.incrementAndGet())
-//                    TaskQueueManager.addTask(task)
-//                    channel.send(task)
-//                    Log.i(TAG, "send task -> ${task.getTaskName()}")
-//                    true
-//                } else {
-//                    Log.i(
-//                        TAG, "TaskQueueManager has same task -> ${task.getTaskName()} , " +
-//                            "size = " + TaskQueueManager.getTaskQueue().size
-//                    )
-//                    false
-//                }
                 task.setSequence(atomicInteger.incrementAndGet())
                 TaskQueueManager.addTask(task)
                 channel.send(task)
-                Log.i(TAG, "send task -> ${task.getTaskName()}")
+
+                logger.i("send task -> ${task.getTaskName()}")
                 true
             } else {
-                Log.i(TAG, "Channel is not Active，removeTask -> ${task.getTaskName()}")
+                logger.i("Channel is not Active，removeTask -> ${task.getTaskName()}")
                 TaskQueueManager.removeTask(task)
                 cacheTaskNameList.remove(task.getTaskName())
                 return false
             }
         }.onFailure {
-            Log.i(TAG, "addTaskCatch -> $it")
+            logger.i("addTaskCatch -> $it")
             TaskQueueManager.removeTask(task)
             cacheTaskNameList.remove(task.getTaskName())
         }.getOrElse { false }
@@ -112,15 +102,15 @@ class OptimusTaskManager {
 
     private suspend fun tryToHandlerTask(it: IOptimusTask) {
         try {
-            Log.i(TAG, "tryToHandlerTask -> ${it.getTaskName()}")
+            logger.i("tryToHandlerTask -> ${it.getTaskName()}")
             currRunningTask = it
-            withContext(Dispatchers.Main) { it.doTask() }
+            it.doTask()
             if (it.getDuration() != 0L) {
                 delay(it.getDuration())
                 withContext(Dispatchers.Main) { it.finishTask() }
                 currRunningTask = null
 
-                Log.i(TAG, "tryToHandlerTask finish，removeTask -> ${it.getTaskName()}")
+                logger.i("tryToHandlerTask finish，removeTask -> ${it.getTaskName()}")
                 TaskQueueManager.removeTask(it)
                 cacheTaskNameList.remove(it.getTaskName())
             } else {
@@ -128,7 +118,7 @@ class OptimusTaskManager {
             }
         } catch (ex: Exception) {
             ex.printStackTrace()
-            Log.i(TAG, "handlerTaskCatch -> $ex")
+            logger.i("handlerTaskCatch -> $ex")
         }
     }
 

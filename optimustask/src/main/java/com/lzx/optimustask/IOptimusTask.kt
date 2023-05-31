@@ -12,7 +12,7 @@ interface IOptimusTask : Comparable<IOptimusTask> {
     /**
      * 执行任务回调
      */
-    fun doTask()
+    suspend fun doTask()
 
     /**
      * 完成任务回调
