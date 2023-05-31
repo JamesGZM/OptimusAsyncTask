@@ -50,12 +50,14 @@ private class Task1(var textView: TextView) : OptimusTask() {
 
     @SuppressLint("SetTextI18n")
     override fun doTask() {
-        textView.text = "执行时间不确定的任务-> " + getSequence()
+        withContext(Dispatchers.Main){
+                textView.text = "执行时间不确定的任务-> " + getSequence()
 
-        //模拟该任务耗时两秒
-        textView.postDelayed({
-            doNextTask() //执行下一个
-        }, 2000)
+                //模拟该任务耗时两秒
+                textView.postDelayed({
+                    doNextTask() //解除阻塞
+                }, 2000)
+            }
     }
 
     override fun finishTask() {
@@ -69,7 +71,9 @@ private class Task2(var textView: TextView) : OptimusTask() {
 
     @SuppressLint("SetTextI18n")
     override fun doTask() {
-        textView.text = "执行时间确定的任务-> " + getSequence()
+        withContext(Dispatchers.Main){
+                textView.text = "执行时间确定的任务-> " + getSequence()
+            }
     }
 
     //确定该任务耗时时间
