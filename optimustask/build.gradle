@@ -1,5 +1,9 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'maven-publish'
+
+group = 'com.github.JamesGZM'
+version = '1.0.0'
 
 android {
     compileSdkVersion 29
@@ -31,4 +35,22 @@ dependencies {
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.3"
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.github.JamesGZM'
+                artifactId = 'OptimusAsyncTask'
+                version = '1.0.0'
+            }
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
 }
